@@ -47,11 +47,11 @@ def boinc2docker_create_work(image,
         prerun/postrun - command to run in the boinc_app script before/after the docker run
         verbose - print extra info
         native_unzip - lets the BOINC client do the unzipping of .tar.gz files into .tar files. otherwise
-                       we do it by hand inside the VM. native_unzip=False is a workaround
-                       for https://github.com/BOINC/boinc/issues/1572. if you've tested a specific job is not
+                       we do it by hand inside the VM. native_unzip=False is a workaround 
+                       for https://github.com/BOINC/boinc/issues/1572. if you've tested a specific job is not 
                        affected by this bug, you can set native_unzip=True since its faster. otherwise
                        native_unzip=False is safer and is the default.
-        vbox_job_xml - list of extra options to pass in vbox_job.xml file. e.g.
+        vbox_job_xml - list of extra options to pass in vbox_job.xml file. e.g. 
                        [{'fraction_done_filename': 'progress'}, 'disable_automatic_checkpoints']
         create_work_args - any extra bin/create_work arguments to pass to the job, e.g. {'target_nresults':1}
         force_reimport - reimport the image into BOINC even if the image header file is there
@@ -59,7 +59,7 @@ def boinc2docker_create_work(image,
 
     fmt = partial(lambda s,f: s.format(**dict(globals(),**f.f_locals)),f=currentframe())
     sh = lambda cmd: check_output(fmt(cmd),shell=True,stderr=STDOUT).strip()
-
+    
 
     if prerun is None: prerun=""
     if postrun is None: postrun=""
@@ -67,7 +67,7 @@ def boinc2docker_create_work(image,
     if create_work_args is None: create_work_args=dict()
     if ':' not in image: image+=':latest'
 
-    if memory:
+    if memory: 
         print('WARNING: --memory is deprecated and will be removed in a future version. Use --rsc_memory_bound instead.')
         create_work_args['rsc_memory_bound'] = memory*1e6
 
@@ -77,7 +77,7 @@ def boinc2docker_create_work(image,
     # tmp dir only created on-demand to reduce disk access
     _tmpdir=[None]
     def tmpdir():
-        if _tmpdir[0] is None:
+        if _tmpdir[0] is None: 
             _tmpdir[0] = mkdtemp()
         return _tmpdir[0]
 
@@ -97,7 +97,7 @@ def boinc2docker_create_work(image,
         image_filename = image_filename_tar + (".manual.gz" if not native_unzip else "")
         image_path = dir_hier_path(image_filename)
         image_path_tar = join(dirname(image_path),image_filename_tar)
-
+        
         # configure memory/disk bounds
         image_size = get_image_size(image)
         create_work_args['rsc_memory_bound'] = int(memory_check(image_size, create_work_args.get('rsc_memory_bound'), verbose))
@@ -114,8 +114,8 @@ def boinc2docker_create_work(image,
 
         #start with any extra custom input files
         if input_files is None: input_files=[]
-        else:
-            input_files = [(open_name,(basename(open_name),contents),flags)
+        else: 
+            input_files = [(open_name,(basename(open_name),contents),flags) 
                            for open_name,contents,flags in input_files]
 
 
@@ -150,7 +150,7 @@ def boinc2docker_create_work(image,
         entrypoint = '--entrypoint '+entrypoint if entrypoint else ''
         script = fmt(dedent("""
         #!/bin/sh
-        set -e
+        set -e 
 
         echo "Importing Docker image from BOINC..."
         mkdir -p /tmp/image/combined
@@ -188,7 +188,7 @@ def boinc2docker_create_work(image,
             layer_path = dir_hier_path(layer_filename)
             layer_path_tar = join(dirname(layer_path),layer_filename_tar)
             input_files.append((fmt("shared/image/{layer_filename}"), layer_filename, layer_flags))
-            if force_reimport or (need_extract and not exists(layer_path)):
+            if force_reimport or (need_extract and not exists(layer_path)): 
                 if verbose: print fmt("Creating input file for layer %s..."%layer_id[:12])
                 sh("tar cvf {layer_path_tar} -C %s {layer_id}"%tmpdir())
                 if native_unzip:
@@ -199,7 +199,7 @@ def boinc2docker_create_work(image,
 
         #extract remaining image info to individual tar file, directly into download dir
         input_files.append((fmt("shared/image/{image_filename}"), image_filename, layer_flags))
-        if force_reimport or need_extract:
+        if force_reimport or need_extract: 
             if verbose: print fmt("Creating input file for image %s..."%image_id[:12])
             sh("tar cvf {image_path_tar} -C %s {image_id}.json manifest.json repositories"%tmpdir())
             if native_unzip:
@@ -258,7 +258,7 @@ def memoize(f):
     return memodict().__getitem__
 
 @memoize
-def get_image_id(image):
+def get_image_id(image): 
     return sh('docker inspect --format "{{ .Id }}" '+image).strip().split(':')[1]
 
 @memoize
@@ -272,10 +272,10 @@ def get_manifest(image_path):
 @memoize
 def get_image_size(image):
     """
-    Get the size of Docker image in bytes
+    Get the size of Docker image in bytes  
     """
     output = check_output("docker images --format '{{ .Size }}' "+image,shell=True,stderr=STDOUT).splitlines()
-    if len(output)==0:
+    if len(output)==0: 
         raise Exception("Trying to get size of unknown image '%s'"%image)
     elif len(output)>1:
         raise Exception("Trying to get size of ambiguous image name '%s'"%image)
@@ -293,7 +293,7 @@ def memory_check(imagesize, memory, verbose=False):
     if memory is None:
         if verbose: print("Automatically setting memory allocation for job to %iMB."%int(need/1e6))
         return need
-    elif memory<need:
+    elif memory<need: 
         if verbose: print("Warning: you allocated %iMB of memory for this job which is less than the prediceted minumum needed of %iMB; job may fail."%(int(memory/1e6),int(need/1e6)))
         return memory
     else:
@@ -308,7 +308,7 @@ def disk_check(imagesize, disk, verbose=False):
     if disk is None:
         if verbose: print("Automatically setting disk allocation for job to %iMB."%int(need/1e6))
         return need
-    elif disk<need:
+    elif disk<need: 
         if verbose: print("Warning: you allocated %iMB of disk space for this job which is less than the prediceted minumum needed of %iMB; job may fail."%(int(disk/1e6),int(need/1e6)))
         return disk
     else:
@@ -347,8 +347,8 @@ if __name__=='__main__':
 
     args = parser.parse_args()
 
-    wu = boinc2docker_create_work(image=args.IMAGE,
-                                  command=args.COMMAND,
+    wu = boinc2docker_create_work(image=args.IMAGE, 
+                                  command=args.COMMAND, 
                                   appname=args.appname,
                                   entrypoint=args.entrypoint,
                                   native_unzip=args.native_unzip,
@@ -357,3 +357,4 @@ if __name__=='__main__':
                                   verbose=(not args.quiet),
                                   force_reimport=args.force_reimport)
     if wu is not None: print wu
+
